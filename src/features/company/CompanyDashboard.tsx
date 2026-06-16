@@ -19,9 +19,15 @@ function CompanyDashboard() {
     return () => window.removeEventListener("tms-store-change", refresh);
   }, []);
 
-  const active = tenders.filter((t) => t.status === "active" && new Date(t.deadline).getTime() >= Date.now());
-  const closed = tenders.filter((t) => new Date(t.deadline).getTime() < Date.now());
+  const active = tenders.filter((t) => t.status === "active");
+  const closed = tenders.filter((t) => t.status === "closed");
   const drafts = tenders.filter((t) => t.status === "draft");
+
+  const getStatus = (t: StoredTender) => {
+    if (t.status === "draft") return <span className="pill pill-blue">Draft</span>;
+    if (t.status === "closed") return <span className="pill pill-grey">Closed</span>;
+    return <span className="pill pill-green">Active</span>;
+  };
 
   return (
     <>
@@ -55,15 +61,16 @@ function CompanyDashboard() {
           </div>
         ) : (
           <div className="data-table">
-            <div className="thead" style={{ gridTemplateColumns: "120px 1.8fr 1fr 110px 130px" }}>
-              <div>Ref</div><div>Title</div><div>Category</div><div>Deadline</div><div>Applications</div>
+            <div className="thead" style={{ gridTemplateColumns: "120px 1.5fr 1fr 110px 100px 130px" }}>
+              <div>Ref</div><div>Title</div><div>Category</div><div>Deadline</div><div>Status</div><div>Applications</div>
             </div>
             {tenders.slice(0, 6).map((t) => (
-              <div key={t.id} className="trow" style={{ gridTemplateColumns: "120px 1.8fr 1fr 110px 130px" }}>
+              <div key={t.id} className="trow" style={{ gridTemplateColumns: "120px 1.5fr 1fr 110px 100px 130px" }}>
                 <div style={{ color: "#888", fontSize: 12 }}>{t.referenceNumber}</div>
                 <div style={{ fontWeight: 500 }}>{t.title}</div>
                 <div>{t.category}</div>
-                <div style={{ fontSize: 12 }}>{t.deadline}</div>
+                <div style={{ fontSize: 12 }}>{t.deadline.split("T")[0]}</div>
+                <div>{getStatus(t)}</div>
                 <div>{applicationStore.countByTender(t.id)}</div>
               </div>
             ))}

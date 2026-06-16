@@ -4,15 +4,9 @@ import { ArrowLeft, Download, Send } from "lucide-react";
 import { toast } from "sonner";
 import { generateTenderPDF } from "@/lib/gemini";
 import { tenderStore, applicationStore, CURRENT_VENDOR, type StoredTender } from "@/lib/store";
+import { fmtDate } from "@/lib/utils";
 
 export { TenderDetailPage as default };
-
-function fmtDate(iso: string) {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return iso;
-  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
-}
 
 function TenderDetailPage() {
   const { id } = useParams() as { id: string };

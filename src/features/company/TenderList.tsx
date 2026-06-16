@@ -1,9 +1,11 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { Eye, Users, Trash2, FilePlus, X } from "lucide-react";
+import { Eye, Users, Trash2, FilePlus, X, Rocket } from "lucide-react";
 import { toast } from "sonner";
 import { tenderStore, applicationStore, type StoredTender } from "@/lib/store";
 import { generateTenderPDF } from "@/lib/gemini";
+
+import { fmtDate } from "@/lib/utils";
 
 export { MyTendersPage as default };
 
@@ -22,13 +24,6 @@ function useTenders() {
   return [tenders, setTenders] as const;
 }
 
-function fmtDate(iso: string) {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return iso;
-  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
-}
-
 function tenderStatus(t: StoredTender): { label: string; cls: string } {
   if (t.status === "draft") return { label: "Draft", cls: "pill pill-blue" };
   if (t.status === "closed") return { label: "Closed", cls: "pill pill-grey" };
@@ -41,6 +36,7 @@ function MyTendersPage() {
   const [tenders] = useTenders();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewTitle, setPreviewTitle] = useState("");
+  const [confirmAction, setConfirmAction] = useState<{ type: "publish" | "delete" | "close", tender: StoredTender } | null>(null);
   const navigate = useNavigate();
 
   const openPdf = async (t: StoredTender) => {
@@ -61,10 +57,22 @@ function MyTendersPage() {
     setPreviewUrl(null);
   };
 
-  const onDelete = (t: StoredTender) => {
-    if (!confirm(`Delete ${t.referenceNumber}? This also removes all applications.`)) return;
-    tenderStore.delete(t.id);
-    toast.success("Tender deleted");
+  const executeConfirmAction = () => {
+    if (!confirmAction) return;
+    const { type, tender } = confirmAction;
+    if (type === "delete") {
+      tenderStore.delete(tender.id);
+      toast.success("Tender deleted");
+    } else if (type === "publish") {
+      const t2 = { ...tender, status: "active" as const };
+      tenderStore.save(t2);
+      toast.success("Draft published successfully!");
+    } else if (type === "close") {
+      const t2 = { ...tender, status: "closed" as const };
+      tenderStore.save(t2);
+      toast.success("Tender closed early.");
+    }
+    setConfirmAction(null);
   };
 
   return (
@@ -123,9 +131,29 @@ function MyTendersPage() {
                     </button>
                   </div>
                   <div style={{ display: "flex", gap: 6 }}>
+                    {t.status === "draft" && (
+                      <button
+                        className="btn-outline"
+                        title="Publish Draft"
+                        onClick={() => setConfirmAction({ type: "publish", tender: t })}
+                        style={{ padding: "4px 8px", color: "#16A34A" }}
+                      >
+                        <Rocket size={14} />
+                      </button>
+                    )}
                     <button className="btn-outline" title="View PDF" onClick={() => openPdf(t)} style={{ padding: "4px 8px" }}>
                       <Eye size={14} />
                     </button>
+                    {t.status === "active" && !deadlinePast && (
+                      <button
+                        className="btn-outline"
+                        title="Close Early"
+                        onClick={() => setConfirmAction({ type: "close", tender: t })}
+                        style={{ padding: "4px 8px", color: "#F59E0B" }}
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
                     <button
                       className="btn-outline"
                       title="Applications"
@@ -137,7 +165,7 @@ function MyTendersPage() {
                     <button
                       className="btn-outline"
                       title="Delete"
-                      onClick={() => onDelete(t)}
+                      onClick={() => setConfirmAction({ type: "delete", tender: t })}
                       style={{ padding: "4px 8px", color: "#c00" }}
                     >
                       <Trash2 size={14} />
@@ -159,6 +187,33 @@ function MyTendersPage() {
             </div>
             <div style={{ padding: 14 }}>
               <iframe src={previewUrl} title="PDF" style={{ width: "100%", height: "65vh", border: "1px solid #ddd", borderRadius: 6 }} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmAction && (
+        <div className="modal-overlay">
+          <div className="modal" style={{ maxWidth: 400, textAlign: "center", padding: "24px" }}>
+            <h3 style={{ marginBottom: 12, fontSize: 18 }}>
+              {confirmAction.type === "publish" ? "Publish Tender" : confirmAction.type === "close" ? "Close Tender" : "Delete Tender"}
+            </h3>
+            <p style={{ color: "#666", marginBottom: 20, fontSize: 14 }}>
+              {confirmAction.type === "publish"
+                ? <>Are you sure you want to publish <strong>{confirmAction.tender.referenceNumber}</strong>? It will become visible to all vendors.</>
+                : confirmAction.type === "close"
+                ? <>Are you sure you want to close <strong>{confirmAction.tender.referenceNumber}</strong> early? Vendors will no longer be able to apply.</>
+                : <>Are you sure you want to delete <strong>{confirmAction.tender.referenceNumber}</strong>? This also removes all applications.</>}
+            </p>
+            <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+              <button className="btn-outline" onClick={() => setConfirmAction(null)}>Cancel</button>
+              <button
+                className="btn-primary"
+                style={confirmAction.type === "delete" ? { background: "#DC2626" } : confirmAction.type === "close" ? { background: "#F59E0B" } : { background: "#16A34A" }}
+                onClick={executeConfirmAction}
+              >
+                {confirmAction.type === "publish" ? "Publish" : confirmAction.type === "close" ? "Close Early" : "Delete"}
+              </button>
             </div>
           </div>
         </div>

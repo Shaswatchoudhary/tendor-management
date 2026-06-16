@@ -127,7 +127,7 @@ function CreateTender() {
     a.remove();
   };
 
-  const handlePublish = async () => {
+  const handlePublish = async (status: "active" | "draft") => {
     if (!aiData || !pdfFormSnap) return;
     setPublishing(true);
     try {
@@ -142,19 +142,19 @@ function CreateTender() {
         deadline,
         location: location.trim(),
         description: description.trim(),
-        status: "active",
+        status: status,
         createdAt: new Date().toISOString(),
         ai: aiData,
         pdfForm: pdfFormSnap,
         requiredDocuments: aiData.requiredDocuments || [],
       };
       tenderStore.save(stored);
-      toast.success("Tender published successfully!");
+      toast.success(status === "active" ? "Tender published successfully!" : "Tender saved as draft!");
       closePreview();
       navigate("/company/tenders");
     } catch (e) {
       console.error(e);
-      toast.error("Failed to publish tender");
+      toast.error("Failed to save tender");
     } finally {
       setPublishing(false);
     }
@@ -192,7 +192,8 @@ function CreateTender() {
           </div>
           <div className="form-group">
             <label className="form-label">Submission Deadline *</label>
-            <input className="form-input" type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
+            <input className="form-input" type="datetime-local" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
+            <div style={{ fontSize: 11, color: "#888", marginTop: 4 }}>Tender automatically closes at this time</div>
           </div>
         </div>
 
@@ -266,9 +267,14 @@ function CreateTender() {
               <button className="btn-outline" onClick={handleDownload}>
                 <Download size={16} /> Download PDF
               </button>
-              <button className="btn-primary" onClick={handlePublish} disabled={publishing} style={{ background: "#d97706" }}>
-                {publishing ? <><span className="loading" /> Publishing...</> : <><Rocket size={16} /> Publish Tender</>}
-              </button>
+              <div style={{ display: "flex", gap: 10 }}>
+                <button className="btn-outline" onClick={() => handlePublish("draft")} disabled={publishing}>
+                  Save as Draft
+                </button>
+                <button className="btn-primary" onClick={() => handlePublish("active")} disabled={publishing} style={{ background: "#d97706" }}>
+                  {publishing ? <><span className="loading" /> Publishing...</> : <><Rocket size={16} /> Publish Tender</>}
+                </button>
+              </div>
             </div>
           </div>
         </div>

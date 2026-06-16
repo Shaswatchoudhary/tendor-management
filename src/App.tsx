@@ -3,6 +3,7 @@ import { Toaster } from "sonner";
 
 // Home
 import { Home } from "./pages/Home";
+import { Register } from "./pages/Register";
 
 // Company Layout & Routes
 import CompanyLayout from "./features/company/CompanyLayout";
@@ -24,6 +25,7 @@ export function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/register" element={<Register />} />
         
         <Route path="/company" element={<CompanyLayout />}>
           <Route index element={<CompanyDashboard />} />

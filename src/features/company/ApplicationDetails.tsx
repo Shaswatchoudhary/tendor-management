@@ -7,6 +7,7 @@ import { generateVendorPDF, type VendorPdfFormData } from "@/lib/gemini";
 import "../vendor/ResultDetails.scss";
 import "./CreateTender.scss";
 import "../../styles/components/_modals.scss";
+import "./ApplicationDetails.scss";
 
 export { ApplicationsPage as default };
 
@@ -109,10 +110,10 @@ function ApplicationsPage() {
           <h1>Applications for: {tender.title}</h1>
           <div className="sub">{tender.referenceNumber} • {apps.length} {apps.length === 1 ? "application" : "applications"}</div>
         </div>
-        <div style={{ display: "flex", gap: "10px" }}>
+        <div className="header-actions">
           <Link to="/company/tenders" className="btn-outline"><ArrowLeft size={14} /> Back</Link>
           {tender.status === "active" && (
-            <button className="btn-primary" onClick={handleCloseTender} style={{ background: "#d97706" }}>
+            <button className="btn-primary btn-close-tender" onClick={handleCloseTender}>
               Close & Auto-Select
             </button>
           )}
@@ -121,12 +122,12 @@ function ApplicationsPage() {
 
       <div className="card">
         {apps.length === 0 ? (
-          <div style={{ textAlign: "center", padding: 40, color: "#888" }}>
+          <div className="empty-state">
             No applications received yet for this tender.
           </div>
         ) : (
           <div className="data-table">
-            <div className="thead" style={{ gridTemplateColumns: "1.8fr 90px 130px 100px 110px 100px" }}>
+            <div className="thead app-grid">
               <div>Vendor Name</div>
               <div>Score</div>
               <div>Verdict</div>
@@ -140,16 +141,15 @@ function ApplicationsPage() {
               return (
                 <div
                   key={a.id}
-                  className="trow"
-                  style={{ gridTemplateColumns: "1.8fr 90px 130px 100px 110px 100px", cursor: "pointer" }}
+                  className="trow app-grid"
                   onClick={() => setSelected(a)}
                 >
-                  <div style={{ fontWeight: 500 }}>{a.vendorName}</div>
+                  <div className="vendor-name">{a.vendorName}</div>
                   <div>{a.match ? `${a.match.totalScore}%` : "—"}</div>
                   <div><span className={verdictPillClass(a.match?.verdict)}>{a.match?.verdict?.replace("_", " ") || "REVIEW"}</span></div>
                   <div>{uploaded}/{totalReq}</div>
-                  <div style={{ fontSize: 12 }}>{new Date(a.createdAt).toLocaleDateString("en-IN")}</div>
-                  <div><button className="btn-outline" style={{ padding: "4px 8px" }}>View</button></div>
+                  <div className="date">{new Date(a.createdAt).toLocaleDateString("en-IN")}</div>
+                  <div><button className="btn-outline btn-view">View</button></div>
                 </div>
               );
             })}
@@ -159,61 +159,61 @@ function ApplicationsPage() {
 
       {selected && (
         <div className="modal-overlay" onClick={() => setSelected(null)}>
-          <div className="modal" style={{ maxWidth: 720, width: "94%" }} onClick={(e) => e.stopPropagation()}>
-            <div style={{ padding: 18, borderBottom: "1px solid #eee", display: "flex", justifyContent: "space-between" }}>
+          <div className="modal app-details-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header-flex">
               <div>
-                <div style={{ fontWeight: 600, fontSize: 16 }}>{selected.vendorName}</div>
-                <div style={{ fontSize: 12, color: "#777" }}>Submitted {new Date(selected.createdAt).toLocaleString("en-IN")}</div>
+                <div className="vendor-title">{selected.vendorName}</div>
+                <div className="submission-time">Submitted {new Date(selected.createdAt).toLocaleString("en-IN")}</div>
               </div>
-              <button className="btn-outline" onClick={() => setSelected(null)} style={{ padding: 6 }}>✕</button>
+              <button className="btn-outline btn-close" onClick={() => setSelected(null)}>✕</button>
             </div>
-            <div style={{ padding: 18, maxHeight: "70vh", overflow: "auto" }}>
-              <div style={{ marginBottom: 12 }}>
+            <div className="modal-body-scroll">
+              <div className="info-row">
                 <strong>Quoted Price:</strong> Rs.{Number(selected.form.quotedPrice || 0).toLocaleString("en-IN")} •{" "}
                 <strong>Timeline:</strong> {selected.form.timeline} days
               </div>
-              <div style={{ marginBottom: 12, fontSize: 13 }}>
+              <div className="info-row small">
                 <strong>GST:</strong> {selected.form.gst || "—"} • <strong>PAN:</strong> {selected.form.pan || "—"} •{" "}
                 <strong>Turnover:</strong> Rs.{selected.form.turnover || "—"} lakhs
               </div>
 
               {selected.match && (
-                <div style={{ marginBottom: 14, padding: 12, background: "#f7f7f7", borderRadius: 6 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                    <span style={{ fontSize: 22, fontWeight: 700 }}>{selected.match.totalScore}%</span>
+                <div className="match-summary-block">
+                  <div className="match-header">
+                    <span className="score-val">{selected.match.totalScore}%</span>
                     <span className={verdictPillClass(selected.match.verdict)}>{selected.match.verdict.replace("_", " ")}</span>
-                    <span style={{ fontSize: 12, color: "#666" }}>• {selected.match.priceFit}</span>
+                    <span className="price-fit">• {selected.match.priceFit}</span>
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 8, fontSize: 11, marginBottom: 8 }}>
+                  <div className="match-breakdown">
                     {Object.entries(selected.match.breakdown).map(([k, v]) => (
-                      <div key={k} style={{ padding: 6, background: "#fff", borderRadius: 4, textAlign: "center" }}>
-                        <div style={{ fontWeight: 600, textTransform: "capitalize" }}>{k}</div>
-                        <div style={{ fontSize: 14, color: "#1a3060" }}>{v.score}</div>
+                      <div key={k} className="breakdown-item">
+                        <div className="label">{k}</div>
+                        <div className="val">{v.score}</div>
                       </div>
                     ))}
                   </div>
-                  <div style={{ fontSize: 12, fontStyle: "italic", color: "#444" }}>{selected.match.summary}</div>
+                  <div className="match-summary-text">{selected.match.summary}</div>
                 </div>
               )}
 
-              <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-                <button className="btn-primary" onClick={() => downloadAppPdf(selected)} style={{ flex: 1 }}>
+              <div className="action-row">
+                <button className="btn-primary btn-pdf" onClick={() => downloadAppPdf(selected)}>
                   <FileText size={14} /> Download Application PDF
                 </button>
               </div>
 
-              <div style={{ fontWeight: 600, marginBottom: 8 }}>Uploaded Documents</div>
+              <div className="docs-title">Uploaded Documents</div>
               {selected.documents.length === 0 ? (
-                <div style={{ color: "#888", fontSize: 13 }}>No documents uploaded.</div>
+                <div className="docs-empty">No documents uploaded.</div>
               ) : (
-                <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+                <ul className="docs-list">
                   {selected.documents.map((d, i) => (
-                    <li key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 10px", borderBottom: "1px solid #f0f0f0" }}>
-                      <div style={{ fontSize: 13 }}>
-                        <div style={{ fontWeight: 500 }}>{d.docName}</div>
-                        <div style={{ color: "#888", fontSize: 12 }}>{d.fileName} • {(d.size / 1024).toFixed(1)} KB</div>
+                    <li key={i} className="doc-item">
+                      <div className="doc-info">
+                        <div className="doc-name">{d.docName}</div>
+                        <div className="doc-meta">{d.fileName} • {(d.size / 1024).toFixed(1)} KB</div>
                       </div>
-                      <a href={d.dataUrl} download={d.fileName} className="btn-outline" style={{ padding: "4px 10px" }}>
+                      <a href={d.dataUrl} download={d.fileName} className="btn-outline btn-download">
                         <Download size={14} /> Download
                       </a>
                     </li>

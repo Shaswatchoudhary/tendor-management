@@ -1,16 +1,10 @@
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { tenderStore, type StoredTender } from "@/lib/store";
+import { fmtDate } from "@/lib/utils";
 import "./BrowseTenders.scss";
 
 export { VendorDashboard as default };
-
-function fmtDate(iso: string) {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return iso;
-  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
-}
 
 function VendorDashboard() {
   const [tenders, setTenders] = useState<StoredTender[]>([]);

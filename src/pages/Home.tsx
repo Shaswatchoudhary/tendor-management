@@ -1,8 +1,9 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Building2, Briefcase } from "lucide-react";
 import { initializeMockData, getMockUsers } from "@/lib/mockData";
 import { setCurrentUser, type LoggedInUser } from "@/lib/store";
+import { authApi } from "@/lib/api";
 import "./Home.scss";
 
 export function Home() {
@@ -15,20 +16,40 @@ export function Home() {
     initializeMockData();
   }, []);
 
-  const loginAs = (em: string, pw: string) => {
+  const loginAs = async (em: string, pw: string) => {
     setError("");
-    const users = getMockUsers();
-    const u = users[em];
-    if (!u || u.password !== pw) {
-      setError("Invalid email or password");
-      return;
+    try {
+      // First try real backend login
+      const result = await authApi.login({ email: em, password: pw });
+      const u = result.user;
+      
+      const logged: LoggedInUser = {
+        id: u.id, 
+        email: u.email, 
+        role: u.role as any, 
+        name: u.name,
+        companyName: u.company_name || u.name, 
+        address: "N/A", 
+        phone: "N/A",
+      };
+      setCurrentUser(logged);
+      navigate(u.role === "company" ? "/company" : "/vendor");
+    } catch (err: any) {
+      // Fallback to mock users for the quick demo buttons if backend fails
+      const users = getMockUsers();
+      const u = users[em];
+      if (!u || u.password !== pw) {
+        setError(err.message || "Invalid email or password");
+        return;
+      }
+      
+      const logged: LoggedInUser = {
+        id: u.id, email: u.email, role: u.role, name: u.name,
+        companyName: u.companyName, address: u.address, phone: u.phone,
+      };
+      setCurrentUser(logged);
+      navigate(u.role === "company" ? "/company" : "/vendor");
     }
-    const logged: LoggedInUser = {
-      id: u.id, email: u.email, role: u.role, name: u.name,
-      companyName: u.companyName, address: u.address, phone: u.phone,
-    };
-    setCurrentUser(logged);
-    navigate(u.role === "company" ? "/company" : "/vendor");
   };
 
   const submit = (e: React.FormEvent) => {
@@ -63,6 +84,10 @@ export function Home() {
           )}
           <button type="submit" className="btn-primary full">Sign In</button>
         </form>
+
+        <div style={{ marginTop: 20, textAlign: "center", fontSize: 14 }}>
+          Don't have an account? <Link to="/register" style={{ color: "#2563eb", textDecoration: "none", fontWeight: 500 }}>Register here</Link>
+        </div>
 
         <div style={{
           marginTop: 22, paddingTop: 18, borderTop: "1px solid #e5e7eb",

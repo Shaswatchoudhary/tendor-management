@@ -67,14 +67,7 @@ function ResultPage() {
     }
   };
 
-  const Bar = ({ score, max }: { score: number; max: number }) => {
-    const pct = Math.round((score / max) * 100);
-    return (
-      <div style={{ height: 8, background: "#eee", borderRadius: 4, overflow: "hidden", flex: 1 }}>
-        <div style={{ width: `${pct}%`, height: "100%", background: verdictColor }} />
-      </div>
-    );
-  };
+
 
   return (
     <>
@@ -94,82 +87,25 @@ function ResultPage() {
             Match evaluation not available for this application.
           </div>
         ) : (
-          <>
-            <div style={{ textAlign: "center", padding: "24px 8px", background: verdictBg, borderRadius: 8, marginBottom: 18 }}>
-              <div style={{ fontSize: 12, color: "#666", marginBottom: 6, letterSpacing: 1 }}>MATCH SCORE</div>
-              <div style={{ fontSize: 48, fontWeight: 700, color: verdictColor }}>{m.totalScore}%</div>
-              <div style={{ width: 220, margin: "10px auto", height: 10, background: "#e7e7e7", borderRadius: 6, overflow: "hidden" }}>
+            <div style={{ textAlign: "center", padding: "32px 16px", background: verdictBg, borderRadius: 8, marginBottom: 24, border: `1px solid ${verdictColor}33` }}>
+              <div style={{ fontSize: 13, color: "#666", marginBottom: 6, letterSpacing: 1, textTransform: "uppercase" }}>Match Score</div>
+              <div style={{ fontSize: 54, fontWeight: 700, color: verdictColor, lineHeight: 1 }}>{m.totalScore}%</div>
+              <div style={{ width: 220, margin: "16px auto 28px", height: 8, background: "#e7e7e7", borderRadius: 4, overflow: "hidden" }}>
                 <div style={{ width: `${m.totalScore}%`, height: "100%", background: verdictColor }} />
               </div>
-              <div style={{ marginTop: 10 }}>
-                <span className="pill" style={{ background: verdictColor, color: "#fff", fontSize: 13, padding: "6px 18px" }}>
-                  {displayVerdict === "SELECTED" ? "✅ SELECTED" : displayVerdict === "NOT_SELECTED" ? "❌ NOT SELECTED" : "🔄 UNDER REVIEW"}
-                </span>
+
+              <div style={{ fontSize: 13, color: "#666", marginBottom: 12, letterSpacing: 1, textTransform: "uppercase" }}>Application Status</div>
+              <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "10px 24px", borderRadius: 30, background: verdictColor, color: "#fff", fontSize: 16, fontWeight: 600 }}>
+                {displayVerdict === "SELECTED" ? "✅ Awarded" : displayVerdict === "NOT_SELECTED" ? "❌ Not Selected" : "🔄 Under Review"}
+              </div>
+              <div style={{ marginTop: 16, fontSize: 14, color: "#555", maxWidth: 400, margin: "16px auto 0", lineHeight: 1.5 }}>
+                {displayVerdict === "SELECTED" 
+                  ? "Congratulations! Your application has been selected for this tender." 
+                  : displayVerdict === "NOT_SELECTED" 
+                  ? "Unfortunately, your application was not selected for this tender." 
+                  : "Your application has been received and is currently being evaluated by the company. Final results will be declared after the tender closes."}
               </div>
             </div>
-
-            <h3 style={{ fontSize: 14, marginBottom: 10 }}>Score Breakdown</h3>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
-              {[
-                ["Eligibility", m.breakdown.eligibility, 25],
-                ["Technical", m.breakdown.technical, 25],
-                ["Experience", m.breakdown.experience, 20],
-                ["Financial", m.breakdown.financial, 20],
-                ["Documents", m.breakdown.documents, 10],
-              ].map(([label, item, max]: any) => (
-                <div key={label}>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
-                    <span>{label}</span>
-                    <span style={{ fontWeight: 600 }}>{item.score}/{max}</span>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <Bar score={item.score} max={max} />
-                  </div>
-                  <div style={{ fontSize: 11, color: "#666", marginTop: 2 }}>{item.remark}</div>
-                </div>
-              ))}
-            </div>
-
-            {m.matched?.length > 0 && (
-              <div style={{ marginBottom: 16 }}>
-                <h4 style={{ fontSize: 13, marginBottom: 6 }}>✅ What you matched</h4>
-                <ul style={{ paddingLeft: 18, fontSize: 13, color: "#444", margin: 0 }}>
-                  {m.matched.map((x, i) => <li key={i} style={{ marginBottom: 3 }}><Check size={12} color="#16a34a" /> {x}</li>)}
-                </ul>
-              </div>
-            )}
-
-            {m.missing?.length > 0 && (
-              <div style={{ marginBottom: 16 }}>
-                <h4 style={{ fontSize: 13, marginBottom: 6 }}>❌ What's missing</h4>
-                <ul style={{ paddingLeft: 18, fontSize: 13, color: "#444", margin: 0 }}>
-                  {m.missing.map((x, i) => <li key={i} style={{ marginBottom: 3 }}><XIcon size={12} color="#c00" /> {x}</li>)}
-                </ul>
-              </div>
-            )}
-
-            {m.strengths?.length > 0 && (
-              <div style={{ marginBottom: 16 }}>
-                <h4 style={{ fontSize: 13, marginBottom: 6 }}>💪 Strengths</h4>
-                <ul style={{ paddingLeft: 18, fontSize: 13, color: "#444", margin: 0 }}>
-                  {m.strengths.map((x, i) => <li key={i} style={{ marginBottom: 3 }}><Star size={12} color="#d97706" /> {x}</li>)}
-                </ul>
-              </div>
-            )}
-
-            {m.concerns?.length > 0 && (
-              <div style={{ marginBottom: 16 }}>
-                <h4 style={{ fontSize: 13, marginBottom: 6 }}>⚠️ Concerns</h4>
-                <ul style={{ paddingLeft: 18, fontSize: 13, color: "#444", margin: 0 }}>
-                  {m.concerns.map((x, i) => <li key={i} style={{ marginBottom: 3 }}><AlertTriangle size={12} color="#d97706" /> {x}</li>)}
-                </ul>
-              </div>
-            )}
-
-            <div style={{ padding: 12, background: "#f7f7f7", borderRadius: 6, fontSize: 13, fontStyle: "italic", color: "#444", marginBottom: 20 }}>
-              {m.summary}
-            </div>
-          </>
         )}
 
         <button className="btn-primary full" onClick={handleDownload}>

@@ -106,7 +106,21 @@ function write<T>(key: string, value: T): boolean {
 
 export const tenderStore = {
   list(): StoredTender[] {
-    return read<StoredTender[]>(TENDERS_KEY, []);
+    const tenders = read<StoredTender[]>(TENDERS_KEY, []);
+    let changed = false;
+    const now = new Date();
+
+    tenders.forEach(t => {
+      if (t.status === "active" && t.deadline && new Date(t.deadline) <= now) {
+        t.status = "closed";
+        changed = true;
+      }
+    });
+
+    if (changed) {
+      write(TENDERS_KEY, tenders);
+    }
+    return tenders;
   },
   get(id: string): StoredTender | undefined {
     return tenderStore.list().find((t) => t.id === id);

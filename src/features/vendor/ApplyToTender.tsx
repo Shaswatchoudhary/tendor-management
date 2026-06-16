@@ -1,16 +1,14 @@
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
-import { Upload, Check, Send, Plus, Trash2, ArrowLeft } from "lucide-react";
+import { Upload, Check, Send, Plus, Trash2, ArrowLeft, Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { documentsApi, authApi } from "@/lib/api";
 import {
-  generateVendorApplication, evaluateVendorMatch,
-  type VendorAIInput, type VendorTenderRef,
-} from "@/lib/gemini";
-import {
-  tenderStore, applicationStore, readFileAsDataURL,
+  tenderStore, applicationStore,
   CURRENT_VENDOR,
-  type StoredTender, type StoredApplication, type VendorFormData, type ProjectReference, type UploadedDocument,
+  type StoredTender, type StoredApplication, type VendorFormData, type ProjectReference
 } from "@/lib/store";
+import { generateVendorApplication, evaluateVendorMatch, type VendorAIInput, type VendorTenderRef } from "@/lib/gemini";
 import "../company/CreateTender.scss";
 
 export { ApplyPage as default };
@@ -38,7 +36,9 @@ function ApplyPage() {
   const navigate = useNavigate();
   const [tender, setTender] = useState<StoredTender | undefined>();
 
-  useEffect(() => { setTender(tenderStore.get(id)); }, [id]);
+  useEffect(() => {
+    setTender(tenderStore.get(id));
+  }, [id]);
 
   const requiredDocs = useMemo(() => tender?.requiredDocuments ?? [], [tender]);
 
@@ -54,7 +54,9 @@ function ApplyPage() {
     whyUs: "",
   });
 
-  const [uploaded, setUploaded] = useState<Record<string, UploadedDocument>>({});
+  const [uploaded, setUploaded] = useState<Record<string, any>>({});
+  const [processingDocs, setProcessingDocs] = useState<Record<string, boolean>>({});
+  const [verifications, setVerifications] = useState<Record<string, any>>({});
   const [submitting, setSubmitting] = useState(false);
   const [loaderMsg, setLoaderMsg] = useState(LOADER_STEPS[0]);
 
@@ -77,42 +79,37 @@ function ApplyPage() {
     });
   };
 
-  const addRef = () => setForm((s) => ({ ...s, references: [...s.references, emptyRef()] }));
-  const removeRef = (i: number) => setForm((s) => ({ ...s, references: s.references.filter((_, idx) => idx !== i) }));
+  const addRef = () => setForm((s: any) => ({ ...s, references: [...s.references, emptyRef()] }));
+  const removeRef = (i: number) => setForm((s: any) => ({ ...s, references: s.references.filter((_: any, idx: number) => idx !== i) }));
 
   const handleFile = async (docName: string, file: File | undefined) => {
     if (!file) return;
     if (file.size > MAX_FILE_BYTES) { toast.error(`${file.name} exceeds 10MB limit`); return; }
-    const dataUrl = await readFileAsDataURL(file);
-    setUploaded((u) => ({ ...u, [docName]: { docName, fileName: file.name, dataUrl, size: file.size } }));
-  };
-
-  const validate = (): string | null => {
-    if (!form.companyName.trim()) return "Company name is required";
-    if (!form.orgType) return "Organization type is required";
-    if (!form.registrationNumber.trim()) return "Registration number is required";
-    if (!form.yearEstablished) return "Year of establishment is required";
-    if (!form.gst.trim()) return "GST number is required";
-    if (!form.pan.trim()) return "PAN number is required";
-    if (!form.address.trim()) return "Registered address is required";
-    if (!form.yearsInBusiness) return "Years in business is required";
-    if (!form.turnover) return "Annual turnover is required";
-    if (!form.categoryExperience) return "Category experience is required";
-    if (!form.projectCount) return "Number of similar projects is required";
-    if (!form.technicalCapability.trim() || form.technicalCapability.trim().length < 50)
-      return "Technical capability statement must be at least 50 characters";
-    if (!form.quotedPrice) return "Quoted price is required";
-    if (!form.timeline) return "Completion timeline is required";
-    if (!form.whyUs.trim()) return "Please tell us why you should be selected";
-    return null;
+    
+    setProcessingDocs(p => ({...p, [docName]: true}));
+    
+    try {
+      const result = await documentsApi.upload(docName, file);
+      setUploaded((u) => ({ ...u, [docName]: { docName, fileName: file.name, size: file.size, serverId: result.document.id } }));
+      setVerifications((v) => ({ ...v, [docName]: result.verification }));
+      
+      if (result.verification?.verified) {
+         toast.success(`${docName} verified!`);
+      } else {
+         toast.error(`${docName} verification failed!`);
+      }
+    } catch (e: any) {
+      toast.error(`Failed to upload ${docName}: ${e.message}`);
+    } finally {
+      setProcessingDocs(p => ({...p, [docName]: false}));
+    }
   };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const err = validate();
-    if (err) { toast.error(err); return; }
+    if (!form.quotedPrice || !form.timeline) { toast.error("Price and timeline are required"); return; }
 
-    const missingCount = requiredDocs.filter((d) => !uploaded[d]).length;
+    const missingCount = requiredDocs.filter((d: string) => !uploaded[d]).length;
     if (missingCount > 0) {
       const ok = confirm(`${missingCount} required document(s) not uploaded. Submit anyway?`);
       if (!ok) return;
@@ -196,11 +193,11 @@ function ApplyPage() {
     <>
       <div className="page-header">
         <div>
-          <Link to={`/vendor/tender/$id`.replace('\$id', tender.id)} className="btn-outline" style={{ marginBottom: 8, display: "inline-flex" }}>
-            <ArrowLeft size={14} /> Back to Tender
+          <Link to={`/vendor`} className="btn-outline" style={{ marginBottom: 8, display: "inline-flex" }}>
+            <ArrowLeft size={14} /> Back to Dashboard
           </Link>
           <h1>Apply: {tender.title}</h1>
-          <div className="sub">{tender.referenceNumber} • Budget Rs.{Number(tender.budgetMin).toLocaleString("en-IN")} – Rs.{Number(tender.budgetMax).toLocaleString("en-IN")}</div>
+          <div className="sub">{tender.reference_number || tender.referenceNumber} • Budget Rs.{Number(tender.budgetMin || 0).toLocaleString("en-IN")} – Rs.{Number(tender.budgetMax || 0).toLocaleString("en-IN")}</div>
         </div>
       </div>
 
@@ -268,7 +265,7 @@ function ApplyPage() {
           <Field label="Similar Projects Completed (last 5 years) *">
             <input className="form-input" type="number" value={form.projectCount} onChange={(e) => update("projectCount", e.target.value)} />
           </Field>
-          {form.references.map((ref, i) => (
+          {form.references.map((ref: any, i: number) => (
             <div key={i} style={{ border: "1px dashed #ddd", borderRadius: 6, padding: 12, marginBottom: 10, background: "#fafafa" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                 <strong style={{ fontSize: 13 }}>Project Reference {i + 1}</strong>
@@ -305,7 +302,7 @@ function ApplyPage() {
 
         <Section title="E. Financial Bid">
           <Row>
-            <Field label={`Quoted Price (₹) * (Budget: ₹${Number(tender.budgetMin).toLocaleString("en-IN")} – ₹${Number(tender.budgetMax).toLocaleString("en-IN")})`}>
+            <Field label={`Quoted Price (₹) *`}>
               <input className="form-input" type="number" value={form.quotedPrice} onChange={(e) => update("quotedPrice", e.target.value)} />
             </Field>
             <Field label="Completion Timeline (days from work order) *">
@@ -314,34 +311,65 @@ function ApplyPage() {
           </Row>
         </Section>
 
-        <Section title="F. Why Should We Select You">
-          <Field label="Your pitch *">
-            <textarea className="form-textarea" style={{ minHeight: 100 }} value={form.whyUs} onChange={(e) => update("whyUs", e.target.value)} placeholder="What makes your company the best choice?" />
-          </Field>
-        </Section>
-
         <Section title={`G. Required Documents (${Object.keys(uploaded).length}/${requiredDocs.length} uploaded)`}>
           {requiredDocs.length === 0 ? (
             <div style={{ fontSize: 13, color: "#888", padding: 10 }}>No specific documents requested for this tender.</div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {requiredDocs.map((d, i) => {
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {requiredDocs.map((d: string, i: number) => {
                 const up = uploaded[d];
+                const isProcessing = processingDocs[d];
+                const verif = verifications[d];
+
+                let borderColor = "#ccc";
+                let bgColor = "#fafafa";
+                
+                if (verif) {
+                  if (verif.verified) {
+                    borderColor = "#16a34a"; // Green border
+                    bgColor = "#f0fdf4";
+                  } else {
+                    borderColor = "#dc2626"; // Red border
+                    bgColor = "#fef2f2";
+                  }
+                } else if (up) {
+                  borderColor = "#3b82f6"; // Blue border
+                  bgColor = "#eff6ff";
+                }
+
                 return (
-                  <label key={d} style={{
-                    display: "flex", alignItems: "center", gap: 10, padding: "10px 12px",
-                    border: "1px dashed #ccc", borderRadius: 6, background: up ? "#f0fdf4" : "#fafafa", cursor: "pointer",
-                  }}>
-                    {up ? <Check size={16} color="#16a34a" /> : <Upload size={16} color="#666" />}
-                    <div style={{ flex: 1, fontSize: 13 }}>
-                      <div style={{ fontWeight: 500 }}>{i + 1}. {d} <span style={{ color: "#c00" }}>*</span></div>
-                      <div style={{ fontSize: 11, color: up ? "#16a34a" : "#888" }}>
-                        {up ? `✅ ${up.fileName} (${(up.size / 1024).toFixed(1)} KB)` : "PDF, JPG, PNG, DOC, DOCX (max 10MB)"}
+                  <div key={d} style={{ border: `2px solid ${borderColor}`, borderRadius: 8, background: bgColor, overflow: "hidden", transition: 'all 0.2s' }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", cursor: "pointer", pointerEvents: isProcessing ? 'none' : 'auto' }}>
+                      {isProcessing ? (
+                         <Loader2 size={18} color="#666" style={{ animation: "spin 1s linear infinite" }} />
+                      ) : verif?.verified ? (
+                         <Check size={18} color="#16a34a" />
+                      ) : verif && !verif.verified ? (
+                         <AlertCircle size={18} color="#dc2626" />
+                      ) : (
+                         <Upload size={18} color="#666" />
+                      )}
+                      <div style={{ flex: 1, fontSize: 14 }}>
+                        <div style={{ fontWeight: 600, color: '#1f2937' }}>{i + 1}. {d} <span style={{ color: "#c00" }}>*</span></div>
+                        <div style={{ fontSize: 12, color: isProcessing ? "#666" : verif?.verified ? "#16a34a" : verif && !verif.verified ? "#dc2626" : "#6b7280", marginTop: 2 }}>
+                          {isProcessing ? "⏳ Processing OCR & AI Verification..." 
+                           : verif?.verified ? `✅ Verified: ${verif.documentType} (${verif.confidence}% match)`
+                           : verif && !verif.verified ? `❌ Mismatch: Detected ${verif.documentType} (${verif.confidence}%). Expected: ${d}. Please re-upload the correct document.`
+                           : "PDF, JPG, PNG (max 10MB)"}
+                        </div>
                       </div>
-                    </div>
-                    <input type="file" accept={ACCEPT} hidden onChange={(e) => handleFile(d, e.target.files?.[0])} />
-                    <span className="pill pill-grey">{up ? "Replace" : "Choose"}</span>
-                  </label>
+                      <input type="file" accept={ACCEPT} hidden onChange={(e) => handleFile(d, e.target.files?.[0])} />
+                      <span className="pill pill-grey" style={{ opacity: isProcessing ? 0.5 : 1 }}>{up ? "Replace" : "Upload"}</span>
+                    </label>
+                    
+                    {/* Expand verification details if verified */}
+                    {verif?.verified && verif.keyFieldsFound?.length > 0 && (
+                      <div style={{ padding: "8px 16px 12px 46px", fontSize: 12, color: "#166534", borderTop: "1px solid #dcfce7" }}>
+                        <strong>Found keys:</strong> {verif.keyFieldsFound.join(", ")}
+                        <div style={{ marginTop: 4, fontStyle: "italic", color: "#15803d" }}>"{verif.reason}"</div>
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>
@@ -349,7 +377,7 @@ function ApplyPage() {
         </Section>
 
         <div style={{ display: "flex", gap: 10, justifyContent: "space-between", marginTop: 16 }}>
-          <Link to={`/vendor/tender/$id`.replace('\$id', tender.id)} className="btn-outline">Cancel</Link>
+          <Link to={`/vendor`} className="btn-outline">Cancel</Link>
           <button type="submit" className="btn-primary" disabled={submitting}>
             {submitting ? <><span className="loading" /> Submitting...</> : <><Send size={16} /> Submit Application</>}
           </button>

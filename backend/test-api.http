@@ -1,0 +1,173 @@
+### TMS Backend API Tests
+# Make sure your backend server is running on port 3001
+@baseUrl = http://localhost:3001/api
+@token = {{login.response.body.token}}
+@tenderId = {{createTender.response.body.id}}
+@applicationId = {{createApplication.response.body.id}}
+
+### ----------------------------------------------------
+### Health Check
+### ----------------------------------------------------
+GET http://localhost:3001/health
+
+### ----------------------------------------------------
+### AUTHENTICATION
+### ----------------------------------------------------
+
+### Register a Company Admin
+# @name register
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "name": "Acme Corp Admin",
+  "email": "admin@acme.com",
+  "password": "password123",
+  "role": "company",
+  "company_name": "Acme Corp"
+}
+
+###
+
+### Login
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@acme.com",
+  "password": "password123"
+}
+
+###
+
+### Get Current User Profile
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{token}}
+
+### ----------------------------------------------------
+### TENDERS
+### ----------------------------------------------------
+
+### Create a new Tender
+# @name createTender
+POST {{baseUrl}}/tenders
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "reference_number": "TNDR-2024-001",
+  "title": "Software Development Services",
+  "category": "IT & Software",
+  "description": "Seeking an agency to develop a custom ERP system.",
+  "budget_min": 100000,
+  "budget_max": 500000,
+  "deadline": "2026-12-31T23:59:59Z",
+  "required_documents": [
+    { "name": "Company Registration" },
+    { "name": "Financial Statements" }
+  ],
+  "eligibility_criteria": [
+    { "text": "Minimum 5 years experience" }
+  ]
+}
+
+###
+
+### List All Tenders
+GET {{baseUrl}}/tenders
+Authorization: Bearer {{token}}
+
+### ----------------------------------------------------
+### APPLICATIONS (Testing requires a 'vendor' role token)
+### ----------------------------------------------------
+
+### Register a Vendor
+# @name registerVendor
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "name": "Global Tech Services",
+  "email": "vendor@globaltech.com",
+  "password": "password123",
+  "role": "vendor",
+  "company_name": "Global Tech Services"
+}
+
+###
+
+### Login as Vendor (Run this, then use its token below manually if needed)
+# @name loginVendor
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "vendor@globaltech.com",
+  "password": "password123"
+}
+
+###
+
+### Submit Application
+# @name createApplication
+POST {{baseUrl}}/applications
+Authorization: Bearer {{loginVendor.response.body.token}} 
+Content-Type: application/json
+
+{
+  "tender_id": "{{tenderId}}",
+  "quoted_price": 450000,
+  "timeline": 180,
+  "turnover": 250,
+  "gst": "22AAAAA0000A1Z5",
+  "pan": "ABCDE1234F",
+  "year_established": 2018,
+  "employees": 50,
+  "address": "123 Tech Park",
+  "city": "Bangalore",
+  "state": "Karnataka",
+  "pin": "560001",
+  "certifications": ["ISO 9001"],
+  "references": ["Ref 1"]
+}
+
+###
+
+### Get Application Details
+GET {{baseUrl}}/applications/{{applicationId}}
+Authorization: Bearer {{loginVendor.response.body.token}}
+
+### ----------------------------------------------------
+### ADMIN
+### ----------------------------------------------------
+
+### Register an Admin
+# @name registerAdmin
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "name": "Super Admin",
+  "email": "admin@system.com",
+  "password": "password123",
+  "role": "admin"
+}
+
+###
+
+### Login as Admin
+# @name loginAdmin
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@system.com",
+  "password": "password123"
+}
+
+###
+
+### Get Dashboard Stats (Requires 'admin' role token)
+GET {{baseUrl}}/admin/dashboard
+Authorization: Bearer {{loginAdmin.response.body.token}}
