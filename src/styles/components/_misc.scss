@@ -1,0 +1,106 @@
+@use '../variables' as *;
+
+.progress-bar {
+  height: 5px;
+  width: 100%;
+  background: $border-light;
+  border-radius: 999px;
+  overflow: hidden;
+  .progress-fill {
+    height: 100%;
+    background: $primary;
+    border-radius: 999px;
+    transition: width .4s;
+  }
+}
+
+.activity-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  .activity-item {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+
+    .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: $primary;
+      margin-top: 6px;
+      flex-shrink: 0;
+    }
+    .body {
+      font-size: 13px;
+      .meta { font-size: 11px; color: $text-label; margin-top: 2px; }
+    }
+  }
+}
+
+.quick-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+
+  .qa {
+    background: $bg-subtle;
+    border: 0.5px solid $border;
+    border-radius: $radius-sm;
+    padding: 14px;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 500;
+    color: $text-main;
+    cursor: pointer;
+
+    svg { display: block; margin: 0 auto 6px; color: $primary; }
+    &:hover { background: $primary-light; }
+  }
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+
+  h1 { font-size: 20px; font-weight: 700; }
+  .sub { color: $text-label; font-size: 13px; margin-top: 2px; }
+}
+
+.two-col {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 18px;
+  @media (max-width: 1100px) { grid-template-columns: 1fr; }
+}
+
+.pdf-preview {
+  background: $bg-subtle;
+  border: 0.5px dashed $border;
+  border-radius: $radius-md;
+  padding: 40px;
+  text-align: center;
+  color: $text-label;
+
+  .pdf-icon {
+    width: 56px; height: 56px;
+    background: $danger-light;
+    color: $danger;
+    border-radius: $radius-sm;
+    display: grid; place-items: center;
+    margin: 0 auto 12px;
+    font-weight: 700;
+  }
+}
+
+.loading {
+  display: inline-block;
+  width: 14px; height: 14px;
+  border: 2px solid rgba(255,255,255,0.4);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }

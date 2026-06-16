@@ -1,0 +1,96 @@
+@use '../../styles/variables' as *;
+
+.stepper {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+
+  .step {
+    flex: 1;
+    min-width: 110px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: $radius-sm;
+    background: $bg-white;
+    border: 0.5px solid $border;
+    font-size: 12px;
+    color: $text-label;
+
+    .step-num {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: $bg-subtle;
+      display: grid; place-items: center;
+      font-weight: 700;
+      font-size: 11px;
+      color: $text-label;
+    }
+
+    &.done {
+      .step-num { background: $success-light; color: $success; }
+    }
+    &.active {
+      border-color: $primary;
+      background: $primary-light;
+      color: $primary-dark;
+      .step-num { background: $primary; color: white; }
+    }
+  }
+}
+
+.step-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 0.5px solid $border-light;
+
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+}
+
+.el-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  .el-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: $bg-subtle;
+    border: 0.5px solid $border-light;
+    border-radius: $radius-sm;
+    font-size: 13px;
+    color: $text-main;
+
+    input[type="checkbox"] { accent-color: $primary; }
+    .el-mini {
+      width: 60px;
+      padding: 4px 6px;
+      border: 0.5px solid $border;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+  }
+}
+
+.upload-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: $bg-subtle;
+  border: 0.5px dashed $border;
+  border-radius: $radius-sm;
+  margin-bottom: 6px;
+  font-size: 12px;
+  cursor: pointer;
+
+  &:hover { background: $primary-light; }
+}

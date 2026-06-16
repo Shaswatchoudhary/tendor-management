@@ -1,0 +1,33 @@
+@use '../variables' as *;
+
+.data-table {
+  width: 100%;
+  background: $bg-white;
+  border: 0.5px solid $border;
+  border-radius: $radius-md;
+  overflow: hidden;
+  font-size: 13px;
+
+  .thead, .trow {
+    display: grid;
+    grid-template-columns: 80px 2fr 1fr 1fr 100px;
+    padding: 12px 16px;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .thead {
+    background: $bg-subtle;
+    color: $text-label;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border-bottom: 0.5px solid $border;
+  }
+
+  .trow {
+    border-bottom: 0.5px solid $border-light;
+    &:last-child { border-bottom: none; }
+    &:hover { background: $bg-subtle; }
+  }
+}

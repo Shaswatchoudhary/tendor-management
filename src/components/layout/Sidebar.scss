@@ -1,0 +1,45 @@
+@use '../../styles/variables' as *;
+
+.sidebar {
+  width: 220px;
+  background: $bg-white;
+  border-right: 0.5px solid $border;
+  padding: 18px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  .side-label {
+    padding: 8px 12px;
+    font-size: 11px;
+    color: $text-label;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+}
+
+.sitem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: $radius-sm;
+  color: $text-main;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  text-align: left;
+  width: 100%;
+
+  svg { width: 16px; height: 16px; color: $text-label; }
+
+  &:hover { background: $bg-subtle; }
+
+  &.on {
+    background: $primary-light;
+    color: $primary-dark;
+    svg { color: $primary-dark; }
+  }
+}

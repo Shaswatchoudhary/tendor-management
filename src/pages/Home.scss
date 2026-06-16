@@ -1,0 +1,68 @@
+@use '../styles/variables' as *;
+
+.login-wrap {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background: $bg-main;
+  padding: 20px;
+}
+
+.login-card {
+  width: 310px;
+  background: $bg-white;
+  border: 0.5px solid $border;
+  border-radius: $radius-lg;
+  padding: 22px;
+  box-shadow: $shadow-card;
+
+  .login-logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    margin-bottom: 18px;
+
+    .logo-icon {
+      width: 26px; height: 26px;
+      background: $primary;
+      border-radius: 6px;
+      display: grid; place-items: center;
+      color: white;
+      font-size: 14px;
+    }
+  }
+
+  h2 { font-size: 16px; margin-bottom: 4px; }
+  .sub { font-size: 12px; color: $text-label; margin-bottom: 16px; }
+
+  .role-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background: $bg-subtle;
+    border: 0.5px solid $border;
+    border-radius: $radius-sm;
+    padding: 3px;
+    margin-bottom: 18px;
+
+    button {
+      border: none;
+      background: transparent;
+      padding: 8px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: $text-label;
+
+      &.on { background: $primary; color: white; }
+    }
+  }
+
+  .forgot {
+    display: block;
+    text-align: center;
+    margin-top: 14px;
+    font-size: 12px;
+    color: $primary-dark;
+  }
+}

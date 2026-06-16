@@ -1,0 +1,38 @@
+@use '../../styles/variables' as *;
+
+.match-score {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 16px;
+  font-size: 28px;
+  font-weight: 700;
+  color: $primary-dark;
+  background: conic-gradient($primary 0% var(--p, 85%), $border-light var(--p, 85%) 100%);
+  position: relative;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 8px;
+    border-radius: 50%;
+    background: $bg-white;
+  }
+  span { position: relative; }
+}
+
+.req-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+
+  li { display: flex; gap: 8px; align-items: center; }
+  .ok  { color: $success; }
+  .bad { color: $danger; }
+}

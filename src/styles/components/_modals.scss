@@ -1,0 +1,56 @@
+@use '../variables' as *;
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: grid;
+  place-items: center;
+  z-index: 100;
+  padding: 20px;
+}
+
+.modal {
+  background: $bg-white;
+  border-radius: $radius-md;
+  width: 100%;
+  max-width: 800px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+
+  .modal-head {
+    padding: 16px 20px;
+    border-bottom: 0.5px solid $border;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .modal-body {
+    padding: 20px;
+    overflow: auto;
+    flex: 1;
+  }
+
+  .modal-foot {
+    padding: 14px 20px;
+    border-top: 0.5px solid $border;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+
+  .pdf-text {
+    font-family: "SF Mono", Menlo, monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    color: $text-main;
+    background: $bg-subtle;
+    padding: 18px;
+    border-radius: $radius-sm;
+    border: 0.5px solid $border-light;
+  }
+}
