@@ -4,7 +4,7 @@ import { Download, ArrowLeft, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { tenderStore, applicationStore, type StoredApplication, type StoredTender } from "@/lib/store";
 import { generateVendorPDF, type VendorPdfFormData } from "@/lib/gemini";
-import "../../vendor/ResultDetails.scss";
+import "../vendor/ResultDetails.scss";
 import "./CreateTender.scss";
 import "../../styles/components/_modals.scss";
 
