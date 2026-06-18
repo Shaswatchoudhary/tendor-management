@@ -85,23 +85,23 @@ function ApplyPage() {
   const handleFile = async (docName: string, file: File | undefined) => {
     if (!file) return;
     if (file.size > MAX_FILE_BYTES) { toast.error(`${file.name} exceeds 10MB limit`); return; }
-    
-    setProcessingDocs(p => ({...p, [docName]: true}));
-    
+
+    setProcessingDocs(p => ({ ...p, [docName]: true }));
+
     try {
       const result = await documentsApi.upload(docName, file);
       setUploaded((u) => ({ ...u, [docName]: { docName, fileName: file.name, size: file.size, serverId: result.document.id } }));
       setVerifications((v) => ({ ...v, [docName]: result.verification }));
-      
+
       if (result.verification?.verified) {
-         toast.success(`${docName} verified!`);
+        toast.success(`${docName} verified!`);
       } else {
-         toast.error(`${docName} verification failed!`);
+        toast.error(`${docName} verification failed!`);
       }
     } catch (e: any) {
       toast.error(`Failed to upload ${docName}: ${e.message}`);
     } finally {
-      setProcessingDocs(p => ({...p, [docName]: false}));
+      setProcessingDocs(p => ({ ...p, [docName]: false }));
     }
   };
 
@@ -197,7 +197,7 @@ function ApplyPage() {
             <ArrowLeft size={14} /> Back to Dashboard
           </Link>
           <h1>Apply: {tender.title}</h1>
-          <div className="sub">{tender.reference_number || tender.referenceNumber} • Budget Rs.{Number(tender.budgetMin || 0).toLocaleString("en-IN")} – Rs.{Number(tender.budgetMax || 0).toLocaleString("en-IN")}</div>
+          <div className="sub">{tender.referenceNumber} • Budget Rs.{Number(tender.budgetMin || 0).toLocaleString("en-IN")} – Rs.{Number(tender.budgetMax || 0).toLocaleString("en-IN")}</div>
         </div>
       </div>
 
@@ -323,7 +323,7 @@ function ApplyPage() {
 
                 let borderColor = "#ccc";
                 let bgColor = "#fafafa";
-                
+
                 if (verif) {
                   if (verif.verified) {
                     borderColor = "#16a34a"; // Green border
@@ -341,27 +341,27 @@ function ApplyPage() {
                   <div key={d} style={{ border: `2px solid ${borderColor}`, borderRadius: 8, background: bgColor, overflow: "hidden", transition: 'all 0.2s' }}>
                     <label style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", cursor: "pointer", pointerEvents: isProcessing ? 'none' : 'auto' }}>
                       {isProcessing ? (
-                         <Loader2 size={18} color="#666" style={{ animation: "spin 1s linear infinite" }} />
+                        <Loader2 size={18} color="#666" style={{ animation: "spin 1s linear infinite" }} />
                       ) : verif?.verified ? (
-                         <Check size={18} color="#16a34a" />
+                        <Check size={18} color="#16a34a" />
                       ) : verif && !verif.verified ? (
-                         <AlertCircle size={18} color="#dc2626" />
+                        <AlertCircle size={18} color="#dc2626" />
                       ) : (
-                         <Upload size={18} color="#666" />
+                        <Upload size={18} color="#666" />
                       )}
                       <div style={{ flex: 1, fontSize: 14 }}>
                         <div style={{ fontWeight: 600, color: '#1f2937' }}>{i + 1}. {d} <span style={{ color: "#c00" }}>*</span></div>
                         <div style={{ fontSize: 12, color: isProcessing ? "#666" : verif?.verified ? "#16a34a" : verif && !verif.verified ? "#dc2626" : "#6b7280", marginTop: 2 }}>
-                          {isProcessing ? "⏳ Processing OCR & AI Verification..." 
-                           : verif?.verified ? `✅ Verified: ${verif.documentType} (${verif.confidence}% match)`
-                           : verif && !verif.verified ? `❌ Mismatch: Detected ${verif.documentType} (${verif.confidence}%). Expected: ${d}. Please re-upload the correct document.`
-                           : "PDF, JPG, PNG (max 10MB)"}
+                          {isProcessing ? "⏳ Processing OCR & AI Verification..."
+                            : verif?.verified ? `✅ Verified: ${verif.documentType} (${verif.confidence}% match)`
+                              : verif && !verif.verified ? `❌ Mismatch: Detected ${verif.documentType} (${verif.confidence}%). Expected: ${d}. Please re-upload the correct document.`
+                                : "PDF, JPG, PNG (max 10MB)"}
                         </div>
                       </div>
                       <input type="file" accept={ACCEPT} hidden onChange={(e) => handleFile(d, e.target.files?.[0])} />
                       <span className="pill pill-grey" style={{ opacity: isProcessing ? 0.5 : 1 }}>{up ? "Replace" : "Upload"}</span>
                     </label>
-                    
+
                     {/* Expand verification details if verified */}
                     {verif?.verified && verif.keyFieldsFound?.length > 0 && (
                       <div style={{ padding: "8px 16px 12px 46px", fontSize: 12, color: "#166534", borderTop: "1px solid #dcfce7" }}>

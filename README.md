@@ -1,38 +1,71 @@
-# TenderHub 🏢🤝
-**AI-Powered Tender Management Platform (Frontend Prototype)**
+<div align="center">
+  <h1>🏢🤝 TenderHub</h1>
+  <p><strong>AI-Powered Tender Management & Evaluation Platform</strong></p>
 
-TenderHub is a next-generation, AI-driven platform that revolutionizes the way companies create tenders and vendors apply for them. Built as a fully functional frontend-only prototype, it leverages the **Google Gemini API** to automatically parse, evaluate, and score vendor applications against complex tender requirements—saving hundreds of hours of manual review.
+  [![React](https://img.shields.io/badge/React-19.2-blue.svg)](https://reactjs.org/)
+  [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue.svg)](https://www.typescriptlang.org/)
+  [![Node.js](https://img.shields.io/badge/Node.js-Backend-green.svg)](https://nodejs.org/)
+  [![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL-blue.svg)](https://www.postgresql.org/)
+  [![Gemini API](https://img.shields.io/badge/AI-Google_Gemini-orange.svg)](https://ai.google.dev/)
+  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+</div>
 
-> **Note**: This is a frontend-only prototype. All data is persisted locally in the browser using `localStorage` and mock stores. There is no backend database.
+<br />
+
+TenderHub is a next-generation, AI-driven platform that revolutionizes the way companies create tenders and vendors apply for them. By leveraging the **Google Gemini API**, **Groq**, and **OCR technology**, TenderHub automatically parses, evaluates, and scores vendor applications against complex tender requirements—saving hundreds of hours of manual review.
 
 ---
 
 ## ✨ Key Features
 
 ### For Companies 🏢
-- **Create Smart Tenders**: Define eligibility criteria, budget, completion timelines, and requested documents.
-- **AI Tender Generation**: Use Gemini AI to automatically generate comprehensive NIT (Notice Inviting Tender) PDFs from simple form inputs.
-- **Automated Vendor Evaluation**: Gemini evaluates every incoming application, scoring them out of 100% based on Technical, Financial, Experience, and Eligibility matches.
-- **Fraud & Authenticity Detection**: The AI automatically flags generic marketing fluff, copy-pasted internet text, or AI-generated responses in vendor submissions.
-- **Auto-Selection**: Close a tender with one click to automatically select the highest-scoring, best-matched vendor.
+- **Smart Tender Creation**: Define eligibility criteria, budget, completion timelines, and requested documents.
+- **AI Tender Generation**: Automatically generate comprehensive NIT (Notice Inviting Tender) PDFs from simple form inputs using AI.
+- **Automated Vendor Evaluation**: The platform evaluates incoming applications, scoring them out of 100% based on Technical, Financial, Experience, and Eligibility matches.
+- **Fraud & Authenticity Detection**: Automatically flags generic marketing fluff, copy-pasted internet text, or AI-generated responses in vendor submissions.
+- **Document Parsing & OCR**: Extracts text from uploaded documents (PDFs, Images) using `tesseract.js` and `pdf-parse` for deep analysis.
+- **One-Click Selection**: Close a tender with one click to automatically select the highest-scoring, best-matched vendor.
 
 ### For Vendors 👷
-- **Smart Applications**: Apply to active tenders with detailed financial data, past projects, technical capabilities, and document uploads.
-- **Real-time Evaluation Insights**: Once the tender closes, vendors get a detailed AI-generated breakdown of their score, highlighting Strengths, Concerns, Matched Criteria, and Missing items.
-- **Application PDF Export**: Automatically generate and download a professional PDF summary of the submitted application.
+- **Seamless Applications**: Apply to active tenders with detailed financial data, past projects, technical capabilities, and document uploads.
+- **Real-Time AI Feedback**: Get a detailed AI-generated breakdown of your score, highlighting Strengths, Concerns, Matched Criteria, and Missing items.
+- **Application Export**: Automatically generate and download a professional PDF summary of your submitted application.
 
 ---
 
 ## 🛠️ Technology Stack
 
-- **Framework**: React 18 with Vite
+### Frontend (Client)
+- **Framework**: React 19 with Vite
 - **Language**: TypeScript
-- **Styling**: SCSS (Component-level modular architecture)
-- **Routing**: React Router DOM
-- **Icons**: Lucide React
-- **AI Integration**: `@google/generative-ai` (Gemini 1.5 Flash / Pro)
-- **PDF Generation**: `jspdf`
-- **State Management**: Custom local store (`src/lib/store.ts`) leveraging `localStorage`.
+- **Styling**: SCSS (Component-level modular architecture) & Radix UI
+- **Routing**: React Router DOM (v7)
+- **State Management**: `@tanstack/react-query`, React Hook Form, Custom Stores
+- **Utilities**: `jspdf` (PDF generation), `date-fns`, `zod`
+
+### Backend (Server)
+- **Framework**: Node.js with Express.js
+- **Language**: TypeScript
+- **Database**: PostgreSQL (with `node-pg-migrate` & `pg-pool`)
+- **AI Integration**: Google Gemini API (`@google/genai`), Groq SDK
+- **Authentication**: JWT (`jsonwebtoken`) & `bcrypt`
+- **Document Processing**: `multer` (Uploads), `pdf-parse` (PDF text extraction), `tesseract.js` (OCR)
+
+---
+
+## 🏗️ System Architecture
+
+```mermaid
+graph TD
+    Client[React Frontend] -->|REST API| API[Express.js Backend]
+    API -->|Reads/Writes| DB[(PostgreSQL Database)]
+    API -->|Authentication| Auth[JWT & Bcrypt]
+    API -->|Doc Uploads| Multer[File Storage / Multer]
+    Multer -->|PDFs| PDFParse[PDF Parser]
+    Multer -->|Images| OCR[Tesseract.js OCR]
+    API -->|AI Evaluation| Gemini[Google Gemini API]
+    API -->|Fast Inference| Groq[Groq API]
+```
 
 ---
 
@@ -40,74 +73,102 @@ TenderHub is a next-generation, AI-driven platform that revolutionizes the way c
 
 ### Prerequisites
 - Node.js (v18+)
-- npm or yarn
-- A Google Gemini API Key
+- PostgreSQL installed and running
+- API Keys: [Google Gemini API](https://aistudio.google.com/), [Groq API](https://console.groq.com/)
 
-### Installation
+### 1. Database Setup
+Ensure PostgreSQL is running and create a database for the project:
+```sql
+CREATE DATABASE tenderhub;
+```
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/Shaswatchoudhary/tendor-management.git
-   cd tendor-management
-   ```
+### 2. Backend Setup
+```bash
+# Navigate to the backend directory
+cd backend
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+# Install dependencies
+npm install
 
-3. **Configure Environment Variables**
-   Create a `.env` file in the root directory and add your Gemini API key:
-   ```env
-   VITE_GEMINI_API_KEY=your_gemini_api_key_here
-   ```
+# Configure Environment Variables
+cp .env.example .env
+# Edit .env with your DB credentials, JWT secret, and API Keys (Gemini, Groq)
 
-4. **Start the development server**
-   ```bash
-   npm run dev
-   ```
+# Run Migrations
+npm run migrate:create # If setting up fresh migrations
+npm run migrate
 
-5. **Open the app**
-   Navigate to `http://localhost:5173` in your browser.
+# Start the development server
+npm run dev
+```
+The backend will run on `http://localhost:5000` (or the port specified in your `.env`).
+
+### 3. Frontend Setup
+```bash
+# Open a new terminal and navigate to the root directory
+cd tendor-management
+
+# Install dependencies
+npm install
+
+# Configure Environment Variables
+# Create a .env file based on the backend URL if required
+# VITE_API_URL=http://localhost:5000/api
+
+# Start the development server
+npm run dev
+```
+The frontend will run on `http://localhost:5173`.
 
 ---
 
 ## 💡 How to Demo
 
-The platform comes with pre-loaded mock data. To properly test the flow:
-
 1. **Company Flow**:
-   - Log in as the "Company".
-   - Click "Create Tender" and fill out the requirements.
-   - Wait for vendor applications to appear in your dashboard.
-   - Review the AI scores and click "Close Tender & Select Winner" to finalize.
+   - Register and log in as a "Company".
+   - Navigate to the Dashboard, click **Create Tender**, and fill out the requirements.
+   - Wait for vendor applications to be submitted.
+   - Review the AI-generated scores and insights. Click "Close Tender & Select Winner" to finalize the decision.
 
 2. **Vendor Flow**:
-   - Log in as the "Vendor".
-   - Browse open tenders and click "Apply Now".
-   - Submit your details (Try copying/pasting generic text to see the AI penalize your score!).
-   - Once the company closes the tender, check your "My Applications" tab to see your final verdict and detailed AI feedback.
+   - Register and log in as a "Vendor".
+   - Browse open tenders and click **Apply Now**.
+   - Submit your details along with supporting documents.
+   - Once the company closes the tender, check your **My Applications** tab to see your final verdict, score, and detailed AI feedback.
 
 ---
 
 ## 📂 Project Structure
 
 ```text
-src/
-├── components/
-│   ├── layout/       # Topbar, Sidebar, and App Shell wrappers
-│   └── ui/           # Reusable generic UI components
-├── features/
-│   ├── company/      # Company-specific views (Create Tender, Dashboard, Results)
-│   └── vendor/       # Vendor-specific views (Browse, Apply, Dashboard)
-├── lib/
-│   ├── gemini.ts     # Core AI prompt engineering, parsing, and PDF generation
-│   ├── store.ts      # LocalStorage-based database simulation
-│   └── mockData.ts   # Initial seed data
-├── styles/           # Global variables and shared SCSS components
-└── pages/            # Root level pages (Home/Login)
+tendor-management/
+├── backend/                  # Express Node.js Server
+│   ├── db/                   # PostgreSQL Migrations & Config
+│   ├── src/                  # Controllers, Services, Routes
+│   ├── uploads/              # Local Document Storage
+│   └── package.json
+├── src/                      # React Frontend
+│   ├── components/           # UI & Layout Components
+│   ├── features/             # Feature-specific Views (Company/Vendor)
+│   ├── lib/                  # Utilities, API hooks, Stores
+│   ├── pages/                # Root Routes
+│   └── styles/               # Global SCSS variables & styles
+├── package.json
+└── README.md
 ```
 
 ---
 
-*Built with ❤️ for efficient, transparent, and intelligent tender management.*
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+---
+
+<div align="center">
+  <i>Built with ❤️ for efficient, transparent, and intelligent tender management.</i>
+</div>
