@@ -8,6 +8,7 @@ import tendersRoutes from './routes/tenders.routes';
 import applicationsRoutes from './routes/applications.routes';
 import documentsRoutes from './routes/documents.routes';
 import adminRoutes from './routes/admin.routes';
+import aiRoutes from './routes/ai.routes';
 import { errorHandler } from './middleware/errorHandler';
 
 dotenv.config();
@@ -26,6 +27,7 @@ app.use('/api/tenders', tendersRoutes);
 app.use('/api/applications', applicationsRoutes);
 app.use('/api/documents', documentsRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/ai', aiRoutes);
 
 // Health Check
 app.get('/health', (req, res) => {

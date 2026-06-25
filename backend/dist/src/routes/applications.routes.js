@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const applications_controller_1 = require("../controllers/applications.controller");
+const auth_1 = require("../middleware/auth");
+const router = (0, express_1.Router)();
+router.post('/', auth_1.requireAuth, (0, auth_1.requireRole)(['vendor']), applications_controller_1.createApplication);
+router.get('/:id', auth_1.requireAuth, applications_controller_1.getApplication);
+router.patch('/:id/verdict', auth_1.requireAuth, (0, auth_1.requireRole)(['company', 'admin']), applications_controller_1.updateVerdict);
+exports.default = router;

@@ -1,0 +1,314 @@
+import { useState, useEffect, useMemo, useRef } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { EditorContent } from "@tiptap/react";
+import { toast } from "sonner";
+import { ArrowLeft, FileText, CheckCircle, Save, Download, Rocket, Eye, X } from "lucide-react";
+
+import { tenderStore, StoredTender } from "@/lib/store";
+import { generateHtmlTenderPDF } from "@/lib/gemini";
+import { useTenderEditor } from "../hooks/useTenderEditor";
+import { aiToTiptapJson } from "../utils/tenderJsonToTiptap";
+import { tiptapJsonToAi } from "../utils/tiptapToTenderJson";
+import { EditorToolbar } from "../components/EditorToolbar";
+import { TenderHeaderCard } from "../components/TenderHeaderCard";
+import { DocumentChecklistPanel } from "../components/DocumentChecklistPanel";
+import { TenderHeader, RequiredDocument } from "../types";
+
+export function TenderEditorPage() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  
+  const [tender, setTender] = useState<StoredTender | null>(null);
+  const [header, setHeader] = useState<TenderHeader | null>(null);
+  const [checklist, setChecklist] = useState<RequiredDocument[]>([]);
+  
+  const [publishing, setPublishing] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!id) return;
+    const loaded = tenderStore.get(id);
+    if (!loaded) {
+      toast.error("Tender not found");
+      navigate("/company/tenders");
+      return;
+    }
+    setTender(loaded);
+    
+    setHeader({
+      refNo: loaded.referenceNumber,
+      title: loaded.title,
+      category: loaded.category,
+      budgetMin: loaded.budgetMin,
+      budgetMax: loaded.budgetMax,
+      currency: loaded.pdfForm?.currency || "INR",
+      submissionDeadline: loaded.deadline,
+      location: loaded.location,
+      emdAmount: loaded.ai?.emdAmount || "",
+      issuanceDate: loaded.createdAt,
+      completionPeriod: loaded.pdfForm?.completionDays ? `${loaded.pdfForm.completionDays} Days` : "30 Days",
+    });
+
+    const docs = (loaded.requiredDocuments || []).map((d: any) => {
+      if (typeof d === "string") {
+        return {
+          id: Math.random().toString(36).substring(2, 9),
+          label: d.replace(" (Optional)", ""),
+          required: !d.includes("(Optional)"),
+        };
+      }
+      return d as RequiredDocument;
+    });
+    setChecklist(docs);
+  }, [id, navigate]);
+
+  const initialContent = useMemo(() => {
+    if (!tender?.ai) return null;
+    return aiToTiptapJson(tender.ai);
+  }, [tender]);
+
+  const handleUpdate = (jsonContent: any) => {
+    if (!tender || !editor) return;
+    const updatedAi = tiptapJsonToAi(jsonContent, tender.ai);
+    const updatedTender = { ...tender, ai: updatedAi, htmlContent: editor.getHTML() };
+    setTender(updatedTender);
+    tenderStore.save(updatedTender);
+  };
+
+  const { editor, isSaved, clearDebounce } = useTenderEditor({
+    initialContent: initialContent || { type: "doc", content: [] },
+    onUpdate: handleUpdate,
+    debounceMs: 500,
+  });
+
+  const saveDraft = (): StoredTender | null => {
+    if (!tender || !header || !editor) return null;
+    
+    const currentJson = editor.getJSON();
+    const htmlContent = editor.getHTML();
+    const updatedAi = tiptapJsonToAi(currentJson, tender.ai); 
+    const docsToSave = checklist.map((d) => d.required ? d.label : `${d.label} (Optional)`);
+    
+    const updatedTender: StoredTender = {
+      ...tender,
+      title: header.title,
+      category: header.category,
+      budgetMin: header.budgetMin,
+      budgetMax: header.budgetMax,
+      deadline: header.submissionDeadline,
+      location: header.location,
+      requiredDocuments: docsToSave as any,
+      pdfForm: {
+        ...tender.pdfForm,
+        title: header.title,
+        category: header.category,
+        budgetMin: header.budgetMin,
+        budgetMax: header.budgetMax,
+        deadline: header.submissionDeadline,
+        location: header.location,
+      },
+      ai: updatedAi,
+      htmlContent,
+    };
+    
+    setTender(updatedTender);
+    tenderStore.save(updatedTender);
+    clearDebounce(); // Cancel any pending autosave and mark as saved
+    return updatedTender;
+  };
+
+  const handleManualSave = () => {
+    saveDraft();
+    toast.success("Draft saved manually");
+  };
+
+  // Ensure the editor actually loads the initial content once derived
+  useEffect(() => {
+    if (editor && initialContent && !editor.isDestroyed) {
+      // Check if editor is currently empty (default empty state)
+      const currentJson = editor.getJSON();
+      const isEmpty = !currentJson.content || currentJson.content.length === 0 || 
+                      (currentJson.content.length === 1 && !currentJson.content[0].content);
+      
+      if (isEmpty) {
+        editor.commands.setContent(initialContent);
+      }
+    }
+  }, [editor, initialContent]);
+
+  // Keep a ref of the latest tender to avoid dependency cycles in the sync effect
+  const latestTenderRef = useRef<StoredTender | null>(tender);
+  useEffect(() => {
+    latestTenderRef.current = tender;
+  }, [tender]);
+
+  // Re-sync header/checklist to store when they change
+  useEffect(() => {
+    const currentTender = latestTenderRef.current;
+    if (!currentTender || !header) return;
+    
+    const docsToSave = checklist.map((d) => d.required ? d.label : `${d.label} (Optional)`);
+    
+    const updatedTender: StoredTender = {
+      ...currentTender,
+      title: header.title,
+      category: header.category,
+      budgetMin: header.budgetMin,
+      budgetMax: header.budgetMax,
+      deadline: header.submissionDeadline,
+      location: header.location,
+      requiredDocuments: docsToSave as any,
+      pdfForm: {
+        ...currentTender.pdfForm,
+        title: header.title,
+        category: header.category,
+        budgetMin: header.budgetMin,
+        budgetMax: header.budgetMax,
+        deadline: header.submissionDeadline,
+        location: header.location,
+      },
+    };
+    
+    if (JSON.stringify(currentTender) !== JSON.stringify(updatedTender)) {
+      setTender(updatedTender);
+      tenderStore.save(updatedTender);
+    }
+  }, [header, checklist]);
+
+  const handlePreview = async () => {
+    if (!tender || !editor) return;
+    try {
+      const latestTender = saveDraft() || tender;
+      
+      const doc = await generateHtmlTenderPDF(latestTender.pdfForm, latestTender.htmlContent || editor.getHTML());
+      const blob: Blob = doc;
+      const url = URL.createObjectURL(blob);
+      setPreviewUrl(url);
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to generate PDF preview");
+    }
+  };
+
+  const handlePublish = async () => {
+    if (!header?.title) return toast.error("Title is required");
+    if (!header?.submissionDeadline) return toast.error("Deadline is required");
+    if (checklist.length === 0) return toast.error("At least one required document must be added");
+
+    setPublishing(true);
+    try {
+      if (tender && editor) {
+        const latestTender = saveDraft() || tender;
+        
+        const publishedTender = { ...latestTender, status: "active" as const };
+        tenderStore.save(publishedTender);
+        toast.success("Tender published to vendors successfully!");
+        navigate("/company/tenders");
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to publish tender");
+    } finally {
+      setPublishing(false);
+    }
+  };
+
+  if (!tender || !header || !initialContent) return <div style={{ padding: 40, textAlign: "center" }}><div className="loading" style={{ margin: "0 auto 20px" }}/>Loading Editor...</div>;
+
+  return (
+    <div style={{ height: "100vh", display: "flex", flexDirection: "column", backgroundColor: "#f3f4f6" }}>
+      {/* Top Bar */}
+      <div style={{ padding: "12px 24px", backgroundColor: "#fff", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <button onClick={() => navigate("/company/tenders")} className="btn-outline" style={{ padding: "8px", border: "none", backgroundColor: "#f3f4f6" }}>
+            <ArrowLeft size={18} />
+          </button>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: "#6366f1", backgroundColor: "#e0e7ff", padding: "2px 8px", borderRadius: 12 }}>{header.refNo}</span>
+              <span style={{ fontSize: 13, color: isSaved ? "#10b981" : "#8b5cf6", display: "flex", alignItems: "center", gap: 4 }}>
+                {isSaved ? <><CheckCircle size={14} /> Saved</> : <><Save size={14} /> Saving...</>}
+              </span>
+            </div>
+            <h1 style={{ fontSize: 18, fontWeight: 700, margin: "4px 0 0", color: "#111827" }}>{header.title}</h1>
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 12 }}>
+          <button className="btn-outline" onClick={handleManualSave}>
+            <Save size={16} /> Save
+          </button>
+          <button className="btn-outline" onClick={handlePreview}>
+            <Eye size={16} /> Preview PDF
+          </button>
+          <button className="btn-primary" onClick={handlePublish} disabled={publishing}>
+            {publishing ? "Publishing..." : <><Rocket size={16} /> Publish to vendors</>}
+          </button>
+        </div>
+      </div>
+
+      {/* Main Content Area */}
+      <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
+        {/* Left Column: Editor */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "24px", alignItems: "center", overflow: "hidden" }}>
+          <div style={{ width: "100%", maxWidth: "800px", height: "100%", backgroundColor: "#fff", borderRadius: "8px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            
+            <div style={{ flexShrink: 0, zIndex: 5, backgroundColor: "#fff" }}>
+              <TenderHeaderCard header={header} onChange={setHeader} />
+              {editor && <EditorToolbar editor={editor} />}
+            </div>
+            
+            <div style={{ flex: 1, overflowY: "auto", padding: "40px" }} className="tiptap-editor-container">
+              {/* @ts-ignore */}
+              <style>{`
+                .tiptap-editor-container .ProseMirror { outline: none; line-height: 1.7; font-size: 14px; color: #1f2937; min-height: 600px; }
+                .tiptap-editor-container .ProseMirror h2 { font-size: 16px; font-weight: 700; text-transform: uppercase; background-color: #1e3a8a; color: #fff; padding: 8px 12px; margin-top: 32px; margin-bottom: 16px; border-radius: 4px; }
+                .tiptap-editor-container .ProseMirror h3 { font-size: 15px; font-weight: 600; margin-top: 24px; margin-bottom: 12px; }
+                .tiptap-editor-container .ProseMirror p { margin-bottom: 12px; }
+                .tiptap-editor-container .ProseMirror ul, .tiptap-editor-container .ProseMirror ol { padding-left: 24px; margin-bottom: 16px; }
+                .tiptap-editor-container .ProseMirror li { margin-bottom: 6px; }
+                .tiptap-editor-container .ProseMirror ol.lettered-list { list-style-type: lower-alpha; }
+                .tiptap-editor-container .ProseMirror table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+                .tiptap-editor-container .ProseMirror td, .tiptap-editor-container .ProseMirror th { border: 1px solid #cbd5e1; padding: 8px 12px; }
+                .tiptap-editor-container .ProseMirror th { background-color: #f1f5f9; font-weight: 600; text-align: left; }
+                .btn-toolbar { background: transparent; border: 1px solid transparent; border-radius: 4px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #475569; }
+                .btn-toolbar:hover { background-color: #f1f5f9; }
+                .btn-toolbar.active { background-color: #e2e8f0; color: #0f172a; }
+                .btn-toolbar:disabled { opacity: 0.5; cursor: not-allowed; }
+              `}</style>
+              <EditorContent editor={editor} />
+            </div>
+
+          </div>
+        </div>
+
+        {/* Right Column: Checklist */}
+        <div style={{ width: "320px", flexShrink: 0, boxShadow: "-2px 0 5px rgba(0,0,0,0.05)", zIndex: 10 }}>
+          <DocumentChecklistPanel documents={checklist} onChange={setChecklist} />
+        </div>
+      </div>
+
+      {previewUrl && (
+        <div className="modal-overlay" style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.6)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div className="modal" style={{ backgroundColor: "#fff", width: "90%", maxWidth: "980px", borderRadius: "8px", overflow: "hidden", display: "flex", flexDirection: "column", height: "90vh" }}>
+            <div style={{ padding: "16px 20px", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h2 style={{ margin: 0, fontSize: 16 }}>{header.refNo} — Tender Preview</h2>
+              <button onClick={() => { URL.revokeObjectURL(previewUrl); setPreviewUrl(null); }} style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}>
+                <X size={20} />
+              </button>
+            </div>
+            <div style={{ flex: 1, padding: "20px", backgroundColor: "#f8fafc" }}>
+              <iframe src={previewUrl} style={{ width: "100%", height: "100%", border: "1px solid #cbd5e1", borderRadius: "4px" }} />
+            </div>
+            <div style={{ padding: "16px 20px", borderTop: "1px solid #e5e7eb", display: "flex", justifyContent: "flex-end" }}>
+              <button className="btn-primary" onClick={() => { URL.revokeObjectURL(previewUrl); setPreviewUrl(null); }}>
+                Close Preview
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default TenderEditorPage;
